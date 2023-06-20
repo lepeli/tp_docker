@@ -1,0 +1,78 @@
+version: '3'
+
+services:
+
+  redis:
+    image: redis/redis-stack
+    ports:
+      - 6379:6379
+    restart: 'unless-stopped'
+    volumes:
+      - redis_data:/data
+
+    networks:
+      - back
+
+  redisinsight:
+    image: redislabs/redisinsight
+    ports:
+      - 8001:8001
+    restart: 'unless-stopped'
+
+    volumes:
+      - redisinsight_data:/db
+
+    networks:
+      - back
+
+  php:
+    image: windok/php-redis
+    restart: unless-stopped
+    environment:
+      - NOM=FOUCHER
+      - PRENOM=Yvan
+
+    deploy:
+      mode: replicated
+      replicas: 2
+
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+
+    networks:
+      - front
+      - back
+  nginx:
+    image: nginx:latest
+    restart: 'unless-stopped'
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+      - ./web:/usr/share/nginx/html:ro
+    networks:
+      - front
+    ports:
+      - 80:80
+      - 443:443
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    ports:
+    - 8080:8080
+    volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:rw
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - back
+    privileged: true
+
+
+volumes:
+  redisinsight_data:
+  redis_data:
+
+networks:
+  front:
+  back:
